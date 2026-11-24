@@ -67,14 +67,17 @@ class LogibitPrintService : PrintService() {
             }
             val pfd = printJob.document.data
                 ?: throw IllegalStateException("Android did not provide a document file descriptor.")
-            target to pfd
+            // Snapshot PrintJob state on the main thread before background I/O.
+            val attributes = printJob.info.attributes
+            rememberPrintSettings(attributes)
+            Triple(target, pfd, attributes)
         } catch (t: Throwable) {
             Log.e(TAG, "Could not start print job", t)
             printJob.fail(t.message ?: "Could not start print job")
             return
         }
 
-        val (target, pfd) = targetAndDescriptor
+        val (target, pfd, printAttributes) = targetAndDescriptor
         io.execute {
             try {
                 val pdf = ParcelFileDescriptor.AutoCloseInputStream(pfd).use { input ->
@@ -92,7 +95,6 @@ class LogibitPrintService : PrintService() {
                     "The Android print job did not contain a PDF document."
                 }
                 Log.i(TAG, "Read ${pdf.size} PDF bytes for ${target.name}")
-                rememberPrintSettings(printJob.info.attributes)
                 if (target.usbDevice != null) {
                     Log.i(TAG, "Sending USB/OTG job to ${target.name}")
                     UsbPrinterDriverRegistry.printPdf(this@LogibitPrintService, usbManager!!, target.usbDevice, pdf)
@@ -210,8 +212,8 @@ class LogibitPrintService : PrintService() {
                                 val item = DiscoveredPrinter(id, name, host, info.port, resource)
                                 this@LogibitPrintService.printers[id.localId] = item
                                 val caps = buildCapabilities(id,
-                                    listOf(PrintAttributes.MediaSize.ISO_A4, PrintAttributes.MediaSize.ISO_A4.asLandscape(),
-                                        PrintAttributes.MediaSize.ISO_A5, PrintAttributes.MediaSize.ISO_A5.asLandscape(),
+                                    listOf(PrintAttributes.MediaSize.ISO_A4, landscapeMediaSize(PrintAttributes.MediaSize.ISO_A4),
+                                        PrintAttributes.MediaSize.ISO_A5, landscapeMediaSize(PrintAttributes.MediaSize.ISO_A5),
                                         PrintAttributes.MediaSize.NA_LETTER),
                                     listOf(PrintAttributes.Resolution("default", "Default", 300, 300)),
                                     PrintAttributes.COLOR_MODE_MONOCHROME or PrintAttributes.COLOR_MODE_COLOR,
