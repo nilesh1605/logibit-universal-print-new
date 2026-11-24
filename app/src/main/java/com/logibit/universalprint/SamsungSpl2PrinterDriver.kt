@@ -208,7 +208,7 @@ private object Spl2UsbPrinterDriver : UsbPrinterDriver {
         var idx = 0
         for (col in 0 until rowBytes) {
             for (r in 0 until bandLines) {
-                transposed[idx++] = rows[r][col].inv()
+                transposed[idx++] = rows[r][col].toInt().inv().toByte()
             }
         }
 
