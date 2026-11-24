@@ -92,6 +92,7 @@ class LogibitPrintService : PrintService() {
                     "The Android print job did not contain a PDF document."
                 }
                 Log.i(TAG, "Read ${pdf.size} PDF bytes for ${target.name}")
+                rememberPrintSettings(printJob.info.attributes)
                 if (target.usbDevice != null) {
                     Log.i(TAG, "Sending USB/OTG job to ${target.name}")
                     UsbPrinterDriverRegistry.printPdf(this@LogibitPrintService, usbManager!!, target.usbDevice, pdf)
@@ -128,20 +129,48 @@ class LogibitPrintService : PrintService() {
                 .ifBlank { "USB printer ${device.vendorId.toString(16)}:${device.productId.toString(16)}" }
             val item = DiscoveredPrinter(id, name, usbDevice = device)
             printers[id.localId] = item
-            val caps = PrinterCapabilitiesInfo.Builder(id)
-                .addMediaSize(PrintAttributes.MediaSize.ISO_A4, true)
-                .addMediaSize(PrintAttributes.MediaSize.ISO_A5, false)
-                .addMediaSize(PrintAttributes.MediaSize.NA_LETTER, false)
-                .addResolution(PrintAttributes.Resolution("usb300", "300 dpi", 300, 300), true)
-                .setColorModes(PrintAttributes.COLOR_MODE_MONOCHROME, PrintAttributes.COLOR_MODE_MONOCHROME)
-                .setDuplexModes(PrintAttributes.DUPLEX_MODE_NONE, PrintAttributes.DUPLEX_MODE_NONE)
-                .build()
+            val caps = buildCapabilities(id,
+                listOf(PrintAttributes.MediaSize.ISO_A4, PrintAttributes.MediaSize.ISO_A4.asLandscape(),
+                    PrintAttributes.MediaSize.ISO_A5, PrintAttributes.MediaSize.ISO_A5.asLandscape(),
+                    PrintAttributes.MediaSize.NA_LETTER),
+                listOf(PrintAttributes.Resolution("usb300", "300 dpi", 300, 300)),
+                PrintAttributes.COLOR_MODE_MONOCHROME, PrintAttributes.COLOR_MODE_MONOCHROME)
             found.add(PrinterInfo.Builder(id, name, PrinterInfo.STATUS_IDLE)
                 .setDescription("USB / OTG printer · interface ${printerInterface.id}")
                 .setCapabilities(caps).build())
             Log.i(TAG, "Discovered USB printer $name (${device.deviceName}), interface=${printerInterface.id}")
         }
         if (found.isNotEmpty()) session.addPrinters(found)
+    }
+
+    private fun buildCapabilities(id: PrinterId, mediaSizes: List<PrintAttributes.MediaSize>,
+        resolutions: List<PrintAttributes.Resolution>, colorModes: Int, defaultColorMode: Int): PrinterCapabilitiesInfo {
+        val prefs = getSharedPreferences("last_print_settings", Context.MODE_PRIVATE)
+        val defaultMedia = mediaSizes.firstOrNull { it.id == prefs.getString("media_id", null) } ?: mediaSizes.first()
+        val defaultResolution = resolutions.firstOrNull { it.id == prefs.getString("resolution_id", null) } ?: resolutions.first()
+        val savedColor = prefs.getInt("color_mode", defaultColorMode)
+        val color = if ((savedColor == PrintAttributes.COLOR_MODE_COLOR || savedColor == PrintAttributes.COLOR_MODE_MONOCHROME)
+            && colorModes and savedColor != 0) savedColor else defaultColorMode
+        return PrinterCapabilitiesInfo.Builder(id).apply {
+            mediaSizes.forEach { addMediaSize(it, it.id == defaultMedia.id) }
+            resolutions.forEach { addResolution(it, it.id == defaultResolution.id) }
+            setColorModes(colorModes, color)
+            setDuplexModes(PrintAttributes.DUPLEX_MODE_NONE, PrintAttributes.DUPLEX_MODE_NONE)
+        }.build()
+    }
+
+    private fun rememberPrintSettings(attributes: PrintAttributes?) {
+        if (attributes == null) return
+        val e = getSharedPreferences("last_print_settings", Context.MODE_PRIVATE).edit()
+        attributes.mediaSize?.let { e.putString("media_id", it.id) }
+        attributes.resolution?.let { e.putString("resolution_id", it.id) }
+        e.putInt("color_mode", attributes.colorMode)
+        e.putInt("duplex_mode", attributes.duplexMode)
+        attributes.minMargins?.let {
+            e.putInt("margin_left_mils", it.leftMils); e.putInt("margin_top_mils", it.topMils)
+            e.putInt("margin_right_mils", it.rightMils); e.putInt("margin_bottom_mils", it.bottomMils)
+        }
+        e.apply()
     }
 
     private inner class LogibitDiscoverySession : PrinterDiscoverySession() {
@@ -169,14 +198,13 @@ class LogibitPrintService : PrintService() {
                                 val name = info.serviceName ?: "Network printer ($host)"
                                 val item = DiscoveredPrinter(id, name, host, info.port, resource)
                                 this@LogibitPrintService.printers[id.localId] = item
-                                val caps = PrinterCapabilitiesInfo.Builder(id)
-                                    .addMediaSize(PrintAttributes.MediaSize.ISO_A4, true)
-                                    .addMediaSize(PrintAttributes.MediaSize.ISO_A5, false)
-                                    .addMediaSize(PrintAttributes.MediaSize.NA_LETTER, false)
-                                    .addResolution(PrintAttributes.Resolution("default", "Default", 300, 300), true)
-                                    .setColorModes(PrintAttributes.COLOR_MODE_MONOCHROME or PrintAttributes.COLOR_MODE_COLOR, PrintAttributes.COLOR_MODE_COLOR)
-                                    .setDuplexModes(PrintAttributes.DUPLEX_MODE_NONE, PrintAttributes.DUPLEX_MODE_NONE)
-                                    .build()
+                                val caps = buildCapabilities(id,
+                                    listOf(PrintAttributes.MediaSize.ISO_A4, PrintAttributes.MediaSize.ISO_A4.asLandscape(),
+                                        PrintAttributes.MediaSize.ISO_A5, PrintAttributes.MediaSize.ISO_A5.asLandscape(),
+                                        PrintAttributes.MediaSize.NA_LETTER),
+                                    listOf(PrintAttributes.Resolution("default", "Default", 300, 300)),
+                                    PrintAttributes.COLOR_MODE_MONOCHROME or PrintAttributes.COLOR_MODE_COLOR,
+                                    PrintAttributes.COLOR_MODE_COLOR)
                                 val printer = PrinterInfo.Builder(id, name, PrinterInfo.STATUS_IDLE)
                                     .setDescription("IPP network printer · $host:${info.port}")
                                     .setCapabilities(caps)
