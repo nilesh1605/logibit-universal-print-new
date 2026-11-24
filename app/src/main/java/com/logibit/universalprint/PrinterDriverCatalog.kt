@@ -6,9 +6,8 @@ import java.util.Locale
 /**
  * Versioned, data-only printer catalogue.
  *
- * Add model aliases and USB IDs here as devices are verified. A catalogue entry is
- * descriptive: it never claims that a protocol is supported unless an executable
- * driver is registered for that protocol.
+ * A BUILT_IN entry is allowed only after its native driver has been verified
+ * against the physical model. Recognition alone is not protocol support.
  */
 enum class PrinterProtocol {
     IPP, PCL5, POSTSCRIPT, PWG_RASTER, SPL2_QPDL, BROTHER_HBP, UNKNOWN
@@ -31,10 +30,8 @@ data class PrinterProfile(
 )
 
 object PrinterDriverCatalog {
-    const val CATALOG_VERSION = 1
+    const val CATALOG_VERSION = 2
 
-    // Keep this list conservative: only add a BUILT_IN entry after its driver has
-    // been implemented and tested against the corresponding physical printer.
     private val profiles = listOf(
         PrinterProfile(
             id = "samsung.ml-1670",
@@ -42,8 +39,9 @@ object PrinterDriverCatalog {
             modelAliases = setOf("ML-1670", "ML 1670"),
             usbVendorIds = setOf(0x04E8),
             protocol = PrinterProtocol.SPL2_QPDL,
-            availability = DriverAvailability.BUILT_IN,
-            driverId = "samsung.usb.spl2"
+            // The previous hand-written encoder was not validated on hardware.
+            // Do not select it until the proven SpliX-compatible implementation is integrated.
+            availability = DriverAvailability.DRIVER_REQUIRED
         ),
         PrinterProfile(
             id = "brother.hl-l2320d",
