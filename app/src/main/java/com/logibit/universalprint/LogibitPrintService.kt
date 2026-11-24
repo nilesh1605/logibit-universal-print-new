@@ -130,8 +130,8 @@ class LogibitPrintService : PrintService() {
             val item = DiscoveredPrinter(id, name, usbDevice = device)
             printers[id.localId] = item
             val caps = buildCapabilities(id,
-                listOf(PrintAttributes.MediaSize.ISO_A4, PrintAttributes.MediaSize.ISO_A4.asLandscape(),
-                    PrintAttributes.MediaSize.ISO_A5, PrintAttributes.MediaSize.ISO_A5.asLandscape(),
+                listOf(PrintAttributes.MediaSize.ISO_A4, landscapeMediaSize(PrintAttributes.MediaSize.ISO_A4),
+                    PrintAttributes.MediaSize.ISO_A5, landscapeMediaSize(PrintAttributes.MediaSize.ISO_A5),
                     PrintAttributes.MediaSize.NA_LETTER),
                 listOf(PrintAttributes.Resolution("usb300", "300 dpi", 300, 300)),
                 PrintAttributes.COLOR_MODE_MONOCHROME, PrintAttributes.COLOR_MODE_MONOCHROME)
@@ -142,6 +142,17 @@ class LogibitPrintService : PrintService() {
         }
         if (found.isNotEmpty()) session.addPrinters(found)
     }
+
+    // asLandscape() retains Android's original media-size ID. Supplying both
+    // orientations with that same ID breaks the print spooler's media-size mapping.
+    // Give each landscape variant its own stable ID instead.
+    private fun landscapeMediaSize(media: PrintAttributes.MediaSize): PrintAttributes.MediaSize =
+        PrintAttributes.MediaSize(
+            media.id + "_landscape",
+            media.id + " Landscape",
+            media.heightMils,
+            media.widthMils
+        )
 
     private fun buildCapabilities(id: PrinterId, mediaSizes: List<PrintAttributes.MediaSize>,
         resolutions: List<PrintAttributes.Resolution>, colorModes: Int, defaultColorMode: Int): PrinterCapabilitiesInfo {
