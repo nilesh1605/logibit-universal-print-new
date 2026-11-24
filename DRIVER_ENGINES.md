@@ -33,3 +33,11 @@ The Android integration still needs:
 - The app correctly refuses to send generic PCL to these known host-based devices.
 - None of the three Android engine packages is integrated or ready for installation yet.
 - Do not reactivate the old handwritten Samsung SPL encoder; it previously produced a printer firmware error and has not been validated.
+
+## Additional HP model identified from hardware photo
+
+**HP LaserJet Tank MFP 1005 / 1005w** is a separate model from the older HP LaserJet M1005 MFP. HP's product specifications list PCLmS, URF and PWG as its print languages. It must not be routed to foo2xqx (the older M1005 XQX engine). The Android catalogue now has a separate `hp.laserjet-tank-mfp-1005` profile using a dedicated PCLmS/URF/PWG engine requirement. The USB product ID is not yet confirmed; matching currently requires the HP VID plus the model name. No native engine is implemented yet.
+
+HP references:
+- https://support.hp.com/in-en/product/product-specs/hp-laserjet-tank-mfp-1005-printer-series/model/2100846455
+- https://media.flixcar.com/webp/synd-asset/hp-100648929-c07986320.pdf
