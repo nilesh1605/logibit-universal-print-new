@@ -50,15 +50,7 @@ private object Spl2UsbPrinterDriver : UsbPrinterDriver {
 
     override fun matches(device: UsbDevice): Boolean {
         if (device.vendorId != SAMSUNG_VID) return false
-
-        // Do not route every Samsung USB device into SPL2. Match only models we
-        // have an explicit SPL2 profile for; unknown models fall through to a
-        // standards-based driver or a clear unsupported-printer error.
-        val identity = listOfNotNull(device.manufacturerName, device.productName)
-            .joinToString(" ")
-            .uppercase()
-            .replace('_', '-')
-        return identity.contains("ML-1670") || identity.contains("ML 1670")
+        return PrinterDriverCatalog.find(device)?.driverId == driverId
     }
 
     override fun printPdf(context: Context, usbManager: UsbManager, device: UsbDevice, pdf: ByteArray) {
