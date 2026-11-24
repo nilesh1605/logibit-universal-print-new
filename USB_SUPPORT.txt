@@ -1,0 +1,30 @@
+USB / OTG SUPPORT IN THIS BUILD
+
+Implemented:
+- Android USB Host enumeration of standard USB Printer Class (interface class 7) devices.
+- USB permission prompt at print time.
+- IEEE-1284 device ID query.
+- PCL 5 raster PDF rendering at 300 dpi and USB bulk OUT transfer.
+- Samsung SPL2/QPDL raster PDF rendering at 600 dpi and USB bulk OUT transfer, for Samsung
+  (USB vendor id 0x04E8) devices that don't advertise a standard page-description language
+  (most budget ML/SCX/CLX mono lasers, e.g. the ML-1670, rebranded Xerox Phaser 6100 included).
+  Implemented from the publicly documented SPL2 wire format, not from any vendor driver or
+  GPL source, and NOT yet verified against real hardware — treat the first print as a test.
+- Detailed failure messages and Logcat diagnostics.
+
+Compatibility is not universal, and "every printer" isn't a realistic target in one build:
+printer languages fall into a handful of families (PCL 5, PCL XL/PCL6, PostScript, SPL/QPDL,
+ESC/POS, and assorted host-based/GDI-only proprietary formats), and each needs its own driver.
+This build currently covers PCL 5 and Samsung SPL2/QPDL only. It does not implement PCL XL,
+PostScript, ESC/POS, or other vendor-specific protocols. Such printers need additional drivers,
+added the same way: a new UsbPrinterDriver registered in UsbPrinterDriver.kt. Some devices do
+not expose a standard USB Printer Class interface or a usable IEEE-1284 ID at all, in which case
+no driver here can identify their language safely from software alone.
+
+Test checklist:
+1. Enable Logibit Universal Print in Android Print Settings.
+2. Connect a powered printer using a data-capable OTG adapter.
+3. Open a PDF and choose Print.
+4. Select the USB printer and approve the Android USB permission prompt.
+5. Check Logcat for tag LogibitPrint. Confirm the IEEE-1284 ID advertises PCL and that USB transfer reaches 100%.
+6. Verify actual output, margins, page size and image quality on the target model.

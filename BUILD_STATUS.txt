@@ -1,0 +1,10 @@
+Build pipeline: GitHub Actions workflows included.
+Local build: Not run in this environment (Gradle/Android SDK unavailable).
+Hardware validation: Not performed.
+USB: Partial; USB Printer Class + PCL 5 advertised in IEEE-1284 ID, plus Samsung SPL2/QPDL
+     (VID 0x04E8, e.g. ML-1670) which is implemented from public protocol docs and untested
+     on real hardware. Other proprietary/host-based languages still unimplemented.
+Wi-Fi/LAN: Partial; plain IPP over HTTP, printer must accept application/pdf.
+Bluetooth: Not implemented.
+Universal compatibility: Not claimed; proprietary/model-specific drivers remain necessary.
+Release APK: GitHub Actions workflow builds an unsigned release APK on v* tags.

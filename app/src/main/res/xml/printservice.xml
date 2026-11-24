@@ -1,0 +1,3 @@
+<print-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:addPrintersActivity="com.logibit.universalprint.MainActivity"
+    android:settingsActivity="com.logibit.universalprint.MainActivity" />
