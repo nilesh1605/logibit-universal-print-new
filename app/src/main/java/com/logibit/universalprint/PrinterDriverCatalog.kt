@@ -56,7 +56,8 @@ object PrinterDriverCatalog {
             usbVendorIds = setOf(0x03F0),
             // Product ID is not yet confirmed from the user's physical USB device.
             protocol = PrinterProtocol.HP_PCLMS_URF_PWG,
-            availability = DriverAvailability.DRIVER_REQUIRED
+            availability = DriverAvailability.DRIVER_REQUIRED,
+            driverId = "hp.laserjet-tank-mfp-1005.pwg"
         ),
         PrinterProfile(
             id = "hp.laserjet-m1005",
