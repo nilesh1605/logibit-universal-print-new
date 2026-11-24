@@ -41,3 +41,14 @@ The Android integration still needs:
 HP references:
 - https://support.hp.com/in-en/product/product-specs/hp-laserjet-tank-mfp-1005-printer-series/model/2100846455
 - https://media.flixcar.com/webp/synd-asset/hp-100648929-c07986320.pdf
+
+## HP LaserJet Tank MFP 1005: supported upstream path
+
+HP's product specification confirms the model's print languages are PCLmS, URF and PWG. The HPLIP supported-device list separately lists **HP LaserJet Tank MFP 1005** and 1005w as supported by HPLIP 3.22.2, with USB connectivity and full print support. OpenPrinting describes HPLIP's `hpcups` backend as a CUPS Raster driver. Therefore the appropriate USB engine candidate is an Android/NDK port of the model-specific HPLIP `hpcups` path (including the required raster pipeline and USB backend), not `foo2xqx`, not PCL 5, and not simply dumping a PWG file to a USB bulk endpoint.
+
+References:
+- HP model specifications: https://support.hp.com/in-en/product/product-specs/hp-laserjet-tank-mfp-1005-printer-series/model/2100846455
+- HPLIP supported-device list (Tank MFP 1005 / 1005w, HPLIP 3.22.2, USB): https://test.hpopenprint.com/hp-linux-imaging-and-printing/supported_devices/index
+- OpenPrinting HPLIP driver architecture and mixed MIT/BSD/GPL licensing: https://openprinting.github.io/foomatic/driver/hplip
+
+This port is not implemented yet. The next technical work is to isolate the minimal hpcups raster/filter and USB-backend dependencies, cross-compile them for Android ABIs, and verify the output on the physical Tank MFP 1005. Do not mark the profile BUILT_IN before that hardware test.
