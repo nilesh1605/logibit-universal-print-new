@@ -47,7 +47,30 @@ object UsbPrinterDriverRegistry {
     }
 
     fun printPdf(context: Context, usbManager: UsbManager, device: UsbDevice, pdf: ByteArray) {
+        val profile = PrinterDriverCatalog.find(device)
         val candidates = drivers().filter { it.matches(device) }
+
+        // A known host-based model must never fall through to the generic PCL renderer.
+        // That fallback caused the misleading "does not advertise PCL 5" message for
+        // printers whose native language is QPDL, HP XQX, or Brother HBP.
+        if (profile != null && profile.availability == DriverAvailability.DRIVER_REQUIRED) {
+            val requiredDriver = profile.driverId
+            val installed = requiredDriver != null && candidates.any { it.driverId == requiredDriver }
+            if (!installed) {
+                val engine = when (profile.protocol) {
+                    PrinterProtocol.SPL2_QPDL -> "Samsung QPDL/SPL-C"
+                    PrinterProtocol.HP_XQX -> "HP XQX"
+                    PrinterProtocol.BROTHER_HBP -> "Brother HBP"
+                    else -> profile.protocol.name
+                }
+                throw IllegalStateException(
+                    "${profile.manufacturer} ${profile.modelAliases.first()} was recognized. " +
+                        "It requires the model-specific $engine driver, which is not installed in this build. " +
+                        "The app will not send generic PCL data to this printer."
+                )
+            }
+        }
+
         if (candidates.isEmpty()) {
             throw IllegalStateException(
                 "No installed USB driver recognizes ${device.manufacturerName ?: "unknown manufacturer"} " +
