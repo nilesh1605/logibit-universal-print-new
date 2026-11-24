@@ -50,6 +50,7 @@ class LogibitPrintService : PrintService() {
         nsd = getSystemService(NSD_SERVICE) as NsdManager
         usbManager = getSystemService(USB_SERVICE) as UsbManager
         registerSamsungSpl2Driver()
+        UsbPrinterDriverRegistry.register(HpTankPwgRasterDriver)
     }
 
     override fun onCreatePrinterDiscoverySession(): PrinterDiscoverySession = LogibitDiscoverySession()
