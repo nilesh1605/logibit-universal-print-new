@@ -60,6 +60,7 @@ object UsbPrinterDriverRegistry {
                 val engine = when (profile.protocol) {
                     PrinterProtocol.SPL2_QPDL -> "Samsung QPDL/SPL-C"
                     PrinterProtocol.HP_XQX -> "HP XQX"
+                    PrinterProtocol.HP_PCLMS_URF_PWG -> "HP PCLmS/URF/PWG raster"
                     PrinterProtocol.BROTHER_HBP -> "Brother HBP"
                     else -> profile.protocol.name
                 }
