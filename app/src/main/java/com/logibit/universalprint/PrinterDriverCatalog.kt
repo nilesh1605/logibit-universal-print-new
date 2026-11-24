@@ -70,12 +70,11 @@ object PrinterDriverCatalog {
         val identity = normalize(
             listOfNotNull(device.manufacturerName, device.productName).joinToString(" ")
         )
-        if (identity.isBlank()) return null
-
         return profiles.firstOrNull { profile ->
             device.vendorId in profile.usbVendorIds &&
                 (device.productId in profile.usbProductIds ||
-                    profile.modelAliases.any { alias -> identity.contains(normalize(alias)) })
+                    (identity.isNotBlank() &&
+                        profile.modelAliases.any { alias -> identity.contains(normalize(alias)) }))
         }
     }
 
