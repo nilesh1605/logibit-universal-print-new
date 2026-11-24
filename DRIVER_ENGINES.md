@@ -52,3 +52,7 @@ References:
 - OpenPrinting HPLIP driver architecture and mixed MIT/BSD/GPL licensing: https://openprinting.github.io/foomatic/driver/hplip
 
 This port is not implemented yet. The next technical work is to isolate the minimal hpcups raster/filter and USB-backend dependencies, cross-compile them for Android ABIs, and verify the output on the physical Tank MFP 1005. Do not mark the profile BUILT_IN before that hardware test.
+
+## HP Tank USB implementation status (2026-11-24)
+
+A first model-scoped Kotlin PWG Raster USB encoder has now been added as `HpTankPwgRasterDriver.kt`, registered in `LogibitPrintService`, and bound to the HP Tank profile. It rasterizes PDF pages at 300 dpi, emits the PWG `RaS2` stream with 8-bit sGray page data, and sends it through the existing bounded USB bulk transport. The page header follows PWG 5102.4 field offsets; the reserved ranges remain zero. This is an initial implementation, not yet hardware-validated. HP lists the model's native print languages as PCLmS, URF and PWG, but the published language list alone does not prove that every firmware accepts a raw PWG stream over USB. If the printer rejects this stream, the next required path is the exact HPLIP `hpcups` USB filter pipeline rather than trying PCL 5.
