@@ -9,16 +9,16 @@ An Android Print Service project with a GitHub Actions pipeline. You do **not** 
 | Connection / language | Current status | Notes |
 |---|---|---|
 | USB / OTG | Partial, extensible | USB jobs are dispatched through `UsbPrinterDriverRegistry`. The generic PCL 5 driver sends rasterized PDF only when the IEEE-1284 ID advertises PCL 5. Manufacturer/model drivers can be registered with higher priority. |
-| Samsung SPL2/QPDL (ML/SCX/CLX mono lasers, e.g. ML-1670; rebranded Xerox Phaser 6100) | Implemented, **untested on hardware** | Built from the publicly documented SPL2 wire format (not from any vendor or GPL driver source). Matches Samsung's USB vendor id and sends literal/uncompressed bands — correct per spec, just less compact than a real compressor. Treat the first print as a test. |
+| Samsung ML-1670 (SPL2/SPL-C) | Driver package required | OpenPrinting SpliX 2.0.2 explicitly lists this model. Android engine package not integrated. |
 | Wi-Fi / LAN | Partial | Discovers `_ipp._tcp` services and submits the original PDF using IPP 2.0. The printer must accept `application/pdf` over plain IPP/HTTP. |
 | Bluetooth | Not implemented | Needs transport support plus the printer's actual Bluetooth profile/language. |
 | Raw TCP 9100 / LPR | Not implemented | Separate transport and protocol implementation required. |
-| PCL XL/PCL6, PostScript, Canon proprietary, Epson ESC/P, other GDI/host-based languages | Not implemented | Require compatible model-specific drivers (same pattern as the SPL2 driver) or a print server/vendor driver. |
+| HP LaserJet M1005 (XQX), Brother HL-L2320D (HBP), PCL XL/PCL6, PostScript, Canon proprietary, Epson ESC/P, other GDI/host-based languages | Not implemented | Require compatible model-specific drivers (same pattern as the SPL2 driver) or a print server/vendor driver. |
 | IPPS / TLS and authenticated IPP | Not implemented | Current IPP client is plain HTTP and does not implement printer authentication. |
 
 "Universal" realistically means covering the handful of printer-language families one at a time (PCL 5 and SPL2/QPDL so far), not literally every device ever made — a host-based printer with no documented protocol at all cannot be driven without reverse-engineering it first, the way SPL2 was reverse-engineered by the SpliX project.
 
-The USB driver system intentionally refuses to send data when no registered driver recognizes the device or when the selected driver cannot confirm its printer language. It does not guess a printer language or send PDF bytes directly to an arbitrary USB printer. This is safer than silently sending data the printer cannot interpret.
+The USB driver system intentionally refuses to send generic PCL to known host-based models whose native engine is not installed. Samsung ML-1670, HP LaserJet M1005 MFP and Brother HL-L2320D have confirmed upstream engine candidates, but none is integrated into the Android app yet. See DRIVER_ENGINES.md. It does not guess a printer language or send PDF bytes directly to an arbitrary USB printer. This is safer than silently sending data the printer cannot interpret.
 
 ## Build without Android Studio
 
