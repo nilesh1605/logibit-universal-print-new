@@ -130,6 +130,7 @@ class LogibitPrintService : PrintService() {
             printers[id.localId] = item
             val caps = PrinterCapabilitiesInfo.Builder(id)
                 .addMediaSize(PrintAttributes.MediaSize.ISO_A4, true)
+                .addMediaSize(PrintAttributes.MediaSize.ISO_A5, false)
                 .addMediaSize(PrintAttributes.MediaSize.NA_LETTER, false)
                 .addResolution(PrintAttributes.Resolution("usb300", "300 dpi", 300, 300), true)
                 .setColorModes(PrintAttributes.COLOR_MODE_MONOCHROME, PrintAttributes.COLOR_MODE_MONOCHROME)
@@ -170,6 +171,7 @@ class LogibitPrintService : PrintService() {
                                 this@LogibitPrintService.printers[id.localId] = item
                                 val caps = PrinterCapabilitiesInfo.Builder(id)
                                     .addMediaSize(PrintAttributes.MediaSize.ISO_A4, true)
+                                    .addMediaSize(PrintAttributes.MediaSize.ISO_A5, false)
                                     .addMediaSize(PrintAttributes.MediaSize.NA_LETTER, false)
                                     .addResolution(PrintAttributes.Resolution("default", "Default", 300, 300), true)
                                     .setColorModes(PrintAttributes.COLOR_MODE_MONOCHROME or PrintAttributes.COLOR_MODE_COLOR, PrintAttributes.COLOR_MODE_COLOR)
