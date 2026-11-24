@@ -10,7 +10,7 @@ import java.util.Locale
  * against the physical model. Recognition alone is not protocol support.
  */
 enum class PrinterProtocol {
-    IPP, PCL5, POSTSCRIPT, PWG_RASTER, SPL2_QPDL, BROTHER_HBP, UNKNOWN
+    IPP, PCL5, POSTSCRIPT, PWG_RASTER, SPL2_QPDL, HP_XQX, BROTHER_HBP, UNKNOWN
 }
 
 enum class DriverAvailability {
@@ -24,13 +24,14 @@ data class PrinterProfile(
     val manufacturer: String,
     val modelAliases: Set<String>,
     val usbVendorIds: Set<Int>,
+    val usbProductIds: Set<Int> = emptySet(),
     val protocol: PrinterProtocol,
     val availability: DriverAvailability,
     val driverId: String? = null
 )
 
 object PrinterDriverCatalog {
-    const val CATALOG_VERSION = 2
+    const val CATALOG_VERSION = 3
 
     private val profiles = listOf(
         PrinterProfile(
@@ -41,6 +42,16 @@ object PrinterDriverCatalog {
             protocol = PrinterProtocol.SPL2_QPDL,
             // The previous hand-written encoder was not validated on hardware.
             // Do not select it until the proven SpliX-compatible implementation is integrated.
+            availability = DriverAvailability.DRIVER_REQUIRED
+        ),
+        PrinterProfile(
+            id = "hp.laserjet-m1005",
+            manufacturer = "HP",
+            modelAliases = setOf("LaserJet M1005", "M1005", "M1005 MFP"),
+            usbVendorIds = setOf(0x03F0),
+            // 0x3B17 is reported for the M1005 MFP; retain model-name matching as fallback.
+            usbProductIds = setOf(0x3B17),
+            protocol = PrinterProtocol.HP_XQX,
             availability = DriverAvailability.DRIVER_REQUIRED
         ),
         PrinterProfile(
@@ -63,7 +74,8 @@ object PrinterDriverCatalog {
 
         return profiles.firstOrNull { profile ->
             device.vendorId in profile.usbVendorIds &&
-                profile.modelAliases.any { alias -> identity.contains(normalize(alias)) }
+                (device.productId in profile.usbProductIds ||
+                    profile.modelAliases.any { alias -> identity.contains(normalize(alias)) })
         }
     }
 
