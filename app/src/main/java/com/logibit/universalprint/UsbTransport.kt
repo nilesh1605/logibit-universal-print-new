@@ -104,16 +104,25 @@ internal object UsbTransport {
         try {
             Log.i(TAG, "Sending ${payload.size} bytes over USB")
             var offset = 0
-            val deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(2)
+            var consecutiveTimeouts = 0
+            // Smaller chunks and bounded retries are more reliable on phones with
+            // OTG adapters and printers that pause while processing raster bands.
+            val deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(5)
             while (offset < payload.size) {
                 if (System.nanoTime() >= deadline) {
-                    throw IllegalStateException("USB print transfer timed out after 2 minutes. The printer did not accept the complete job.")
+                    throw IllegalStateException("USB print transfer timed out after 5 minutes at byte $offset of ${payload.size}.")
                 }
-                val length = minOf(16 * 1024, payload.size - offset)
-                val sent = connection.bulkTransfer(outEndpoint, payload, offset, length, 5_000)
+                val length = minOf(4 * 1024, payload.size - offset)
+                val sent = connection.bulkTransfer(outEndpoint, payload, offset, length, 10_000)
                 if (sent <= 0) {
-                    throw IllegalStateException("USB transfer stopped at byte $offset of ${payload.size} (result=$sent). Check the OTG adapter, cable and printer power.")
+                    consecutiveTimeouts++
+                    if (consecutiveTimeouts >= 3) {
+                        throw IllegalStateException("USB printer stopped accepting data at byte $offset of ${payload.size}. Check printer readiness, OTG cable and power, then retry.")
+                    }
+                    Thread.sleep(150L * consecutiveTimeouts)
+                    continue
                 }
+                consecutiveTimeouts = 0
                 offset += sent
             }
             Log.i(TAG, "USB transfer finished: $offset bytes")
