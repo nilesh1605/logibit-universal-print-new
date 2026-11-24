@@ -175,7 +175,11 @@ class LogibitPrintService : PrintService() {
     private fun rememberPrintSettings(attributes: PrintAttributes?) {
         if (attributes == null) return
         val e = getSharedPreferences("last_print_settings", Context.MODE_PRIVATE).edit()
-        attributes.mediaSize?.let { e.putString("media_id", it.id) }
+        attributes.mediaSize?.let { media ->
+            e.putString("media_id", media.id)
+            e.putInt("media_width_mils", media.widthMils)
+            e.putInt("media_height_mils", media.heightMils)
+        }
         attributes.resolution?.let { e.putString("resolution_id", it.id) }
         e.putInt("color_mode", attributes.colorMode)
         e.putInt("duplex_mode", attributes.duplexMode)
