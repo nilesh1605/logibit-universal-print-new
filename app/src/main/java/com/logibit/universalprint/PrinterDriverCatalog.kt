@@ -10,7 +10,7 @@ import java.util.Locale
  * against the physical model. Recognition alone is not protocol support.
  */
 enum class PrinterProtocol {
-    IPP, PCL5, POSTSCRIPT, PWG_RASTER, SPL2_QPDL, HP_XQX, BROTHER_HBP, UNKNOWN
+    IPP, PCL5, POSTSCRIPT, PWG_RASTER, HP_PCLMS_URF_PWG, SPL2_QPDL, HP_XQX, BROTHER_HBP, UNKNOWN
 }
 
 enum class DriverAvailability {
@@ -42,6 +42,20 @@ object PrinterDriverCatalog {
             protocol = PrinterProtocol.SPL2_QPDL,
             // The previous hand-written encoder was not validated on hardware.
             // Do not select it until the proven SpliX-compatible implementation is integrated.
+            availability = DriverAvailability.DRIVER_REQUIRED
+        ),
+        PrinterProfile(
+            id = "hp.laserjet-tank-mfp-1005",
+            manufacturer = "HP",
+            modelAliases = setOf(
+                "LaserJet Tank MFP 1005",
+                "LaserJet Tank MFP 1005w",
+                "Tank MFP 1005",
+                "Tank MFP 1005w"
+            ),
+            usbVendorIds = setOf(0x03F0),
+            // Product ID is not yet confirmed from the user's physical USB device.
+            protocol = PrinterProtocol.HP_PCLMS_URF_PWG,
             availability = DriverAvailability.DRIVER_REQUIRED
         ),
         PrinterProfile(
