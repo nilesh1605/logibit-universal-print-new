@@ -60,7 +60,7 @@ internal object HpTankPwgRasterDriver : UsbPrinterDriver {
                             try {
                                 bitmap.eraseColor(Color.WHITE)
                                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
-                                writePageHeader(out, width, height, dpi, page.width * 72f / page.width, page.height * 72f / page.height)
+                                writePageHeader(out, width, height, dpi, page.width.toFloat(), page.height.toFloat())
                                 val row = ByteArray(width)
                                 for (y in 0 until height) {
                                     for (x in 0 until width) {
@@ -97,8 +97,8 @@ internal object HpTankPwgRasterDriver : UsbPrinterDriver {
         h.putInt(280, dpi)
         h.putInt(340, 1) // copies
         h.putInt(344, 0) // portrait
-        h.putInt(352, (pageWidthPt * 1000f).toInt())
-        h.putInt(356, (pageHeightPt * 1000f).toInt())
+        h.putInt(352, pageWidthPt.toInt())
+        h.putInt(356, pageHeightPt.toInt())
         h.putInt(372, width)
         h.putInt(376, height)
         h.putInt(384, 8) // bits per color
@@ -106,15 +106,8 @@ internal object HpTankPwgRasterDriver : UsbPrinterDriver {
         h.putInt(392, width) // bytes per line
         h.putInt(396, 0) // chunky
         h.putInt(400, 18) // sGray
-        h.putInt(404, 0) // PWG raster compression
         h.putInt(420, 1) // number of colors
-        h.putFloat(424, 1.0f)
-        h.putFloat(428, pageWidthPt)
-        h.putFloat(432, pageHeightPt)
-        h.putFloat(436, 0f)
-        h.putFloat(440, 0f)
-        h.putFloat(444, pageWidthPt)
-        h.putFloat(448, pageHeightPt)
+        // PWG 5102.4 reserves bytes 404-419 and 424-451; leave them zero.
         h.putInt(452 + 4, 1) // CrossFeedTransform
         h.putInt(452 + 8, 1) // FeedTransform
         h.putInt(452 + 7 * 4, 0x00FFFFFF.toInt()) // AlternatePrimary
