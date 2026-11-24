@@ -112,11 +112,11 @@ internal object HpTankPwgRasterDriver : UsbPrinterDriver {
         h.putInt(452 + 8, 1) // FeedTransform
         h.putInt(452 + 7 * 4, 0x00FFFFFF.toInt()) // AlternatePrimary
         h.putInt(452 + 8 * 4, 0) // normal print quality
-        putCString(h, 1732, 64, "iso_a4_210x297mm")
+        putCString(h, 1732, 64, pwgMediaSize(pageWidthPt, pageHeightPt))
         out.write(h.array())
     }
 
-    private fun putCString(buffer: ByteBuffer, offset: Int, capacity: Int, value: String) {
+    private fun pwgMediaSize(widthPt: Float, heightPt: Float): String {\n        val shortMm = minOf(widthPt, heightPt) * 25.4f / 72f\n        val longMm = maxOf(widthPt, heightPt) * 25.4f / 72f\n        return if (kotlin.math.abs(shortMm - 148f) < 3f && kotlin.math.abs(longMm - 210f) < 3f) {\n            "iso_a5_148x210mm"\n        } else if (kotlin.math.abs(shortMm - 210f) < 3f && kotlin.math.abs(longMm - 297f) < 3f) {\n            "iso_a4_210x297mm"\n        } else {\n            // Preserve actual PDF dimensions for other sizes; A5 and A4 are explicitly named.\n            "custom_${shortMm.toInt()}x${longMm.toInt()}mm"\n        }\n    }\n\n    private fun putCString(buffer: ByteBuffer, offset: Int, capacity: Int, value: String) {
         val bytes = value.toByteArray(Charsets.US_ASCII)
         require(bytes.size < capacity)
         for (i in bytes.indices) buffer.put(offset + i, bytes[i])
