@@ -3,6 +3,7 @@ package com.logibit.universalprint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.pdf.PdfRenderer
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
@@ -40,6 +41,12 @@ internal object HpTankPwgRasterDriver : UsbPrinterDriver {
     }
 
     private fun renderPdfToPwg(context: Context, pdf: ByteArray): ByteArray {
+        val prefs = context.getSharedPreferences("last_print_settings", Context.MODE_PRIVATE)
+        val paperChoice = prefs.getInt("layout_paper", 0)
+        val orientation = prefs.getInt("layout_orientation", 0)
+        val layoutMode = prefs.getInt("layout_mode", 0)
+        val customScale = prefs.getInt("layout_scale", 100).coerceIn(25, 200) / 100f
+        val marginChoice = prefs.getInt("layout_margins", 0)
         val file = File.createTempFile("logibit-hp-pwg-", ".pdf", context.cacheDir)
         try {
             FileOutputStream(file).use { it.write(pdf) }
@@ -50,17 +57,65 @@ internal object HpTankPwgRasterDriver : UsbPrinterDriver {
                     require(renderer.pageCount in 1..500) { "PDF page count is outside the supported range." }
                     for (index in 0 until renderer.pageCount) {
                         renderer.openPage(index).use { page ->
+                            val sourceW = page.width.toFloat()
+                            val sourceH = page.height.toFloat()
+                            var paperWPt = when (paperChoice) {
+                                1 -> 419.53f // A5 short edge, points
+                                2 -> 612f // US Letter
+                                3 -> sourceW
+                                else -> 595.28f // A4
+                            }
+                            var paperHPt = when (paperChoice) {
+                                1 -> 595.28f
+                                2 -> 792f
+                                3 -> sourceH
+                                else -> 841.89f
+                            }
+                            val landscape = when (orientation) {
+                                1 -> false
+                                2 -> true
+                                else -> sourceW > sourceH
+                            }
+                            if ((paperWPt > paperHPt) != landscape) {
+                                val swap = paperWPt
+                                paperWPt = paperHPt
+                                paperHPt = swap
+                            }
                             val dpi = 300
-                            val width = (page.width * dpi / 72f).toInt().coerceAtLeast(1)
-                            val height = (page.height * dpi / 72f).toInt().coerceAtLeast(1)
+                            val width = (paperWPt * dpi / 72f).toInt().coerceAtLeast(1)
+                            val height = (paperHPt * dpi / 72f).toInt().coerceAtLeast(1)
                             require(width.toLong() * height <= 12_000_000L) {
-                                "This PDF page is too large for safe USB raster printing at 300 dpi."
+                                "Selected paper size is too large for safe USB raster printing at 300 dpi."
                             }
                             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                             try {
                                 bitmap.eraseColor(Color.WHITE)
-                                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
-                                writePageHeader(out, width, height, dpi, page.width.toFloat(), page.height.toFloat())
+                                val marginPt = when (marginChoice) {
+                                    1 -> 8f
+                                    2 -> 18f
+                                    3 -> 36f
+                                    else -> 12f
+                                }
+                                val printableW = (paperWPt - marginPt * 2).coerceAtLeast(1f)
+                                val printableH = (paperHPt - marginPt * 2).coerceAtLeast(1f)
+                                val sx = printableW / sourceW
+                                val sy = printableH / sourceH
+                                val scale = when (layoutMode) {
+                                    1 -> 1f // Actual size
+                                    2 -> maxOf(sx, sy) // Fill page; clip at page bounds
+                                    3 -> customScale
+                                    else -> minOf(sx, sy) // Fit to page
+                                }
+                                val drawW = sourceW * scale
+                                val drawH = sourceH * scale
+                                val leftPt = marginPt + (printableW - drawW) / 2f
+                                val topPt = marginPt + (printableH - drawH) / 2f
+                                val matrix = Matrix().apply {
+                                    setScale(scale * dpi / 72f, scale * dpi / 72f)
+                                    postTranslate(leftPt * dpi / 72f, topPt * dpi / 72f)
+                                }
+                                page.render(bitmap, null, matrix, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                                writePageHeader(out, width, height, dpi, paperWPt, paperHPt)
                                 val row = ByteArray(width)
                                 for (y in 0 until height) {
                                     for (x in 0 until width) {
@@ -68,8 +123,6 @@ internal object HpTankPwgRasterDriver : UsbPrinterDriver {
                                         row[x] = ((Color.red(pixel) * 299 + Color.green(pixel) * 587 +
                                             Color.blue(pixel) * 114) / 1000).toByte()
                                     }
-                                    // PWG v2 compressed line: repeat-count byte (0 = one line),
-                                    // followed by PackBits-like grayscale pixel encoding.
                                     out.write(0)
                                     writePackBitsGrayRow(out, row)
                                 }
