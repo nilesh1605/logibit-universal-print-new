@@ -33,7 +33,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
 class LogibitPrintService : PrintService() {
-    private val io = Executors.newCachedThreadPool()
+    // A single worker prevents two print jobs from rasterizing/sending to the same USB printer at once.
+    // It also bounds peak bitmap/raster memory on phones.
+    private val io = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val printers = ConcurrentHashMap<String, DiscoveredPrinter>()
     private var nsd: NsdManager? = null
@@ -54,6 +56,11 @@ class LogibitPrintService : PrintService() {
     }
 
     override fun onCreatePrinterDiscoverySession(): PrinterDiscoverySession = LogibitDiscoverySession()
+
+    override fun onDestroy() {
+        io.shutdown()
+        super.onDestroy()
+    }
 
     override fun onPrintJobQueued(printJob: PrintJob) {
         // Android PrintJob APIs must be accessed on the main thread.
