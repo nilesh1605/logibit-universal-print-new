@@ -87,6 +87,18 @@ internal object UsbTransport {
             ?.groupValues?.get(1)?.split(',', ' ')?.map { it.trim() }?.filter { it.isNotEmpty() }
             ?: emptyList()
 
+    private fun waitForPrinterReady(connection: UsbDeviceConnection, intf: UsbInterface) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20)
+        val status = ByteArray(1)
+        while (System.nanoTime() < deadline) {
+            val count = connection.controlTransfer(0xA1, 1, 0, intf.id, status, 1, 1000)
+            if (count != 1) return
+            val value = status[0].toInt() and 0xff
+            if ((value and 0x10) != 0 && (value and 0x08) != 0 && (value and 0x20) == 0) return
+            Thread.sleep(500)
+        }
+        Log.w(TAG, "Printer readiness check timed out; attempting bounded transfer")
+    }
     /**
      * Bounded USB transfer. The interface is always released, including on timeout/error.
      * Reuses the original payload rather than allocating a new byte array for every chunk.
@@ -102,6 +114,7 @@ internal object UsbTransport {
             throw IllegalStateException("Could not claim the USB printer interface. Close other apps using this printer and retry.")
         }
         try {
+            waitForPrinterReady(connection, printerInterface)
             Log.i(TAG, "Sending ${payload.size} bytes over USB")
             var offset = 0
             var consecutiveTimeouts = 0
